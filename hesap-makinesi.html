@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أفورا بلاست — الآلة الحاسبة</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #1a1a2e; padding: 20px; }
+  .container { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tabs button { flex: 1; padding: 12px; border: none; border-radius: 8px; background: #dde1e7; font-size: 1rem; cursor: pointer; font-weight: 600; }
+  .tabs button.active { background: #1a5fb4; color: #fff; }
+  .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 16px; }
+  .card h2 { font-size: 1.05rem; margin-bottom: 14px; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: #444; }
+  input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+  input:focus, select:focus { outline: 2px solid #1a5fb4; border-color: transparent; }
+  .row { display: flex; gap: 12px; margin-bottom: 12px; }
+  .row > div { flex: 1; }
+  .result { background: #e8f1fb; border-inline-start: 4px solid #1a5fb4; border-radius: 6px; padding: 14px; font-size: 1rem; margin-top: 8px; }
+  .result strong { font-size: 1.3rem; color: #1a5fb4; }
+  .malzeme { border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; margin-bottom: 12px; position: relative; }
+  .malzeme .sonuc { margin-top: 10px; font-size: 0.95rem; background: #f6f8fa; padding: 10px; border-radius: 6px; }
+  .malzeme .sonuc strong { color: #1a5fb4; }
+  .sil { position: absolute; top: 8px; inset-inline-end: 8px; background: #fbe9e9; color: #c01c28; border: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; }
+  .ekle { width: 100%; padding: 10px; border: 2px dashed #aab; background: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; color: #556; }
+  .hint { font-size: 0.78rem; color: #888; margin-top: 3px; }
+  .toplam { background: #eaf7ea; border-inline-start: 4px solid #26a269; }
+  .toplam strong { color: #26a269; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>أفورا بلاست — الآلة الحاسبة</h1>
+  <p class="subtitle">تسعير الكليشيه وحساب عدد القطع في الكيلوغرام</p>
+
+  <div class="tabs">
+    <button id="tab1btn" class="active" onclick="sekme(1)">تسعير الكليشيه</button>
+    <button id="tab2btn" onclick="sekme(2)">عدد القطع في الكيلو</button>
+  </div>
+
+  <!-- التبويب 1: الكليشيه -->
+  <div id="tab1" class="card">
+    <h2>سعر الكليشيه (لكل سم²)</h2>
+    <div class="row">
+      <div><label>العرض (سم)</label><input type="number" id="kEn" step="any" oninput="kliseHesapla()"></div>
+      <div><label>الطول (سم)</label><input type="number" id="kBoy" step="any" oninput="kliseHesapla()"></div>
+      <div><label>سعر السم²</label><input type="number" id="kFiyat" step="any" oninput="kliseHesapla()"></div>
+    </div>
+    <div class="result" id="kSonuc">أدخل العرض والطول وسعر الوحدة.</div>
+  </div>
+
+  <!-- التبويب 2: عدد القطع في الكيلو -->
+  <div id="tab2" style="display:none">
+    <div class="card">
+      <h2>مقاسات التصميم</h2>
+      <div class="row">
+        <div><label>عرض التصميم (سم)</label><input type="number" id="tEn" step="any" value="23" oninput="kgHesapla()"></div>
+        <div><label>طول التصميم (سم)</label><input type="number" id="tBoy" step="any" value="20" oninput="kgHesapla()"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>المواد الخام</h2>
+      <div id="malzemeler"></div>
+      <button class="ekle" onclick="malzemeEkle()">+ إضافة مادة خام</button>
+      <div class="result toplam" id="tSonuc" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Malzeme.csv'deki kayıtlardan alındı (her tip için baskın yoğunluk)
+const YOGUNLUK = {
+  'ALU': 2.71,
+  'CPP': 0.91,
+  'CPP-BEYAZ': 0.91,
+  'CPP-MET': 0.91,
+  'KRAFT': 1.40,
+  'MET-PL': 0.91,
+  'OPP': 0.91,
+  'OPP COLD SEAL': 0.91,
+  'OPP-LABLE': 0.91,
+  'OPP-MAT': 0.91,
+  'OPP-MAT-PL': 0.90,
+  'OPP-MET COLD SEAL': 0.91,
+  'OPP-METALİZE': 0.91,
+  'OPP-PL': 0.91,
+  'PAPE': 1.40,
+  'PE': 0.933,
+  'PE-BEYAZ': 0.933,
+  'PET': 1.40,
+  'PET MET': 1.40,
+  'PET MET BEYAZ': 1.40,
+  'PROLİZE': 0.72,
+  'PROLİZE-LA': 0.72,
+  'PROLIZE-PL': 0.72,
+  'PVC': 1.40,
+  'PVC-PET-G': 1.38,
+  'SHIRINK': 1.40,
+  'مبوح': 1.40,
+  'مرفرف': 1.40,
+};
+
+function sekme(n) {
+  document.getElementById('tab1').style.display = n === 1 ? '' : 'none';
+  document.getElementById('tab2').style.display = n === 2 ? '' : 'none';
+  document.getElementById('tab1btn').classList.toggle('active', n === 1);
+  document.getElementById('tab2btn').classList.toggle('active', n === 2);
+}
+
+function kliseHesapla() {
+  const en = +kEn.value, boy = +kBoy.value, f = +kFiyat.value;
+  if (!en || !boy || !f) { kSonuc.textContent = 'أدخل العرض والطول وسعر الوحدة.'; return; }
+  kSonuc.innerHTML = `المساحة: ${(en * boy).toLocaleString('en')} سم² &nbsp;←&nbsp; الإجمالي: <strong>${(en * boy * f).toLocaleString('en', {maximumFractionDigits: 2})}</strong>`;
+}
+
+let sayac = 0;
+function malzemeEkle(ad = 'PE', kalinlik = '') {
+  const id = ++sayac;
+  const div = document.createElement('div');
+  div.className = 'malzeme';
+  div.id = 'm' + id;
+  div.innerHTML = `
+    <button class="sil" onclick="document.getElementById('m${id}').remove(); kgHesapla()">حذف</button>
+    <div class="row">
+      <div>
+        <label>المادة الخام</label>
+        <select onchange="this.closest('.malzeme').querySelector('.yog').value = YOGUNLUK[this.value] || ''; kgHesapla()">
+          ${Object.keys(YOGUNLUK).map(k => `<option ${k === ad ? 'selected' : ''}>${k}</option>`).join('')}
+          <option>أخرى</option>
+        </select>
+      </div>
+      <div>
+        <label>الكثافة (غ/سم³)</label>
+        <input type="number" class="yog" step="any" value="${YOGUNLUK[ad] ?? ''}" oninput="kgHesapla()">
+      </div>
+    </div>
+    <div class="row">
+      <div><label>عرض الفيلم (سم)</label><input type="number" class="fen" step="any" value="70" oninput="kgHesapla()"></div>
+      <div><label>السماكة (ميكرون)</label><input type="number" class="kal" step="any" value="${kalinlik}" oninput="kgHesapla()"></div>
+      <div>
+        <label>عدد التصاميم في الصف</label>
+        <input type="number" class="saf" step="1" placeholder="تلقائي" oninput="kgHesapla()">
+        <div class="hint">يُحسب تلقائياً إذا تُرك فارغاً</div>
+      </div>
+    </div>
+    <div class="sonuc">أدخل السماكة.</div>`;
+  document.getElementById('malzemeler').appendChild(div);
+  kgHesapla();
+}
+
+// غرام/قطعة = عرض الفيلم (سم) × طول التصميم (سم) × السماكة (ميكرون) × 0.0001 × الكثافة (غ/سم³) ÷ عدد التصاميم في الصف
+function gramPerAdet(filmEn, tasBoy, kalinlik, yogunluk, saf) {
+  return filmEn * tasBoy * kalinlik * 1e-4 * yogunluk / saf;
+}
+
+function kgHesapla() {
+  const tEnV = +tEn.value, tBoyV = +tBoy.value;
+  let toplamGram = 0, tumTamam = true;
+  document.querySelectorAll('.malzeme').forEach(m => {
+    const fen = +m.querySelector('.fen').value;
+    const kal = +m.querySelector('.kal').value;
+    const yog = +m.querySelector('.yog').value;
+    const safInput = m.querySelector('.saf').value;
+    const saf = safInput ? +safInput : (tEnV ? Math.floor(fen / tEnV) : 0);
+    const sonuc = m.querySelector('.sonuc');
+    if (!fen || !kal || !yog || !tBoyV || !saf || saf < 1) {
+      sonuc.textContent = 'معلومات ناقصة — أدخل مقاسات التصميم وعرض الفيلم والسماكة والكثافة.';
+      tumTamam = false;
+      return;
+    }
+    const g = gramPerAdet(fen, tBoyV, kal, yog, saf);
+    toplamGram += g;
+    sonuc.innerHTML = `عدد التصاميم في الصف: <b>${saf}</b> &nbsp;|&nbsp; وزن القطعة: <b>${g.toFixed(3)} غ</b> &nbsp;|&nbsp; من الكيلو الواحد: <strong>${Math.floor(1000 / g).toLocaleString('en')} قطعة</strong>`;
+  });
+  const tS = document.getElementById('tSonuc');
+  const adet = document.querySelectorAll('.malzeme').length;
+  if (adet > 1 && tumTamam && toplamGram > 0) {
+    tS.style.display = '';
+    tS.innerHTML = `الإجمالي بعد التصفيح (كل الطبقات): ${toplamGram.toFixed(3)} غ/قطعة &nbsp;←&nbsp; من كيلو واحد من المواد مجتمعة: <strong>${Math.floor(1000 / toplamGram).toLocaleString('en')} قطعة</strong>`;
+  } else {
+    tS.style.display = 'none';
+  }
+}
+
+// مثال: PE عرض 70 سماكة 25، وPET عرض 70 سماكة 27، التصميم 23×20، في الصف 3
+malzemeEkle('PE', 25);
+malzemeEkle('PET', 27);
+
+// اختبار ذاتي: التحقق من المثال المعطى
+console.assert(Math.floor(1000 / gramPerAdet(70, 20, 25, 0.92, 3)) === 931, 'PE test failed');
+console.assert(Math.floor(1000 / gramPerAdet(70, 20, 27, 1.40, 3)) === 566, 'PET test failed');
+</script>
+</body>
+</html>
