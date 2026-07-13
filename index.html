@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>أفورا بلاست — الآلة الحاسبة</title>
+<title>عفورة بلاست — الآلة الحاسبة</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #1a1a2e; padding: 20px; }
@@ -34,7 +34,7 @@
 </head>
 <body>
 <div class="container">
-  <h1>أفورا بلاست — الآلة الحاسبة</h1>
+  <h1>عفورة بلاست — الآلة الحاسبة</h1>
   <p class="subtitle">تسعير الكليشيه وحساب عدد القطع في الكيلوغرام</p>
 
   <div class="tabs">
@@ -58,8 +58,8 @@
     <div class="card">
       <h2>مقاسات التصميم</h2>
       <div class="row">
-        <div><label>عرض التصميم (سم)</label><input type="number" id="tEn" step="any" value="23" oninput="kgHesapla()"></div>
-        <div><label>طول التصميم (سم)</label><input type="number" id="tBoy" step="any" value="20" oninput="kgHesapla()"></div>
+        <div><label>عرض التصميم (سم)</label><input type="number" id="tEn" step="any" oninput="kgHesapla()"></div>
+        <div><label>طول التصميم (سم)</label><input type="number" id="tBoy" step="any" oninput="kgHesapla()"></div>
       </div>
     </div>
     <div class="card">
@@ -118,7 +118,7 @@ function kliseHesapla() {
 }
 
 let sayac = 0;
-function malzemeEkle(ad = 'PE', kalinlik = '') {
+function malzemeEkle(ad, kalinlik = '') {
   const id = ++sayac;
   const div = document.createElement('div');
   div.className = 'malzeme';
@@ -129,6 +129,7 @@ function malzemeEkle(ad = 'PE', kalinlik = '') {
       <div>
         <label>المادة الخام</label>
         <select onchange="this.closest('.malzeme').querySelector('.yog').value = YOGUNLUK[this.value] || ''; kgHesapla()">
+          <option value="" disabled ${!ad ? 'selected' : ''}>— اختر المادة —</option>
           ${Object.keys(YOGUNLUK).map(k => `<option ${k === ad ? 'selected' : ''}>${k}</option>`).join('')}
           <option>أخرى</option>
         </select>
@@ -139,7 +140,7 @@ function malzemeEkle(ad = 'PE', kalinlik = '') {
       </div>
     </div>
     <div class="row">
-      <div><label>عرض الفيلم (سم)</label><input type="number" class="fen" step="any" value="70" oninput="kgHesapla()"></div>
+      <div><label>عرض الفيلم (سم)</label><input type="number" class="fen" step="any" oninput="kgHesapla()"></div>
       <div><label>السماكة (ميكرون)</label><input type="number" class="kal" step="any" value="${kalinlik}" oninput="kgHesapla()"></div>
       <div>
         <label>عدد التصاميم في الصف</label>
@@ -186,9 +187,8 @@ function kgHesapla() {
   }
 }
 
-// مثال: PE عرض 70 سماكة 25، وPET عرض 70 سماكة 27، التصميم 23×20، في الصف 3
-malzemeEkle('PE', 25);
-malzemeEkle('PET', 27);
+// açılışta tek boş satır — varsayılan değer yok
+malzemeEkle();
 
 // اختبار ذاتي: التحقق من المثال المعطى
 console.assert(Math.floor(1000 / gramPerAdet(70, 20, 25, 0.92, 3)) === 931, 'PE test failed');
